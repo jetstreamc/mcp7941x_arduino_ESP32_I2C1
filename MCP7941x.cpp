@@ -10,12 +10,12 @@
 
 #if (ARDUINO >= 100)
   #include <Arduino.h>
-  #define WireSend(x) Wire.write(x)
-  #define WireReceive() Wire.read()  
+  #define WireSend(x) Wire1.write(x)
+  #define WireReceive() Wire1.read()  
 #else
   #include <WProgram.h>
-  #define WireSend(x) Wire.send(x)
-  #define WireReceive(x) Wire.receive(x)
+  #define WireSend(x) Wire1.send(x)
+  #define WireReceive(x) Wire1.receive(x)
 #endif
 
 #include "Wire.h"
@@ -26,7 +26,7 @@
 // Constructor:
 MCP7941x::MCP7941x()
 {
-  Wire.begin(); 
+  Wire1.begin(4, 5); 
 }
 
 
@@ -47,11 +47,11 @@ byte MCP7941x::bcdToDec(byte val)
 // Function to read the mac address from the eeprom:
 void MCP7941x::getMacAddress(byte *mac_address)
 { 
-  Wire.beginTransmission(MCP7941x_EEPROM_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_EEPROM_I2C_ADDR);
   WireSend(MAC_LOCATION);
-  Wire.endTransmission();
+  Wire1.endTransmission();
 
-  Wire.requestFrom(MCP7941x_EEPROM_I2C_ADDR, 6);
+  Wire1.requestFrom(MCP7941x_EEPROM_I2C_ADDR, 6);
 
   for( int i=0; i<6; i++ )
   {
@@ -64,23 +64,23 @@ void MCP7941x::getMacAddress(byte *mac_address)
 void MCP7941x::unlockUniqueID()
 {
   // Write 0x55 to the memory location 0x09 and stop:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(0x09);
   WireSend(0x55);
-  Wire.endTransmission();
+  Wire1.endTransmission();
 
   // Write 0xAA to the memory location 0x09 and stop:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(0x09);
   WireSend(0xAA);
-  Wire.endTransmission();
+  Wire1.endTransmission();
 }
 
 
 // Unlock the unique id area and write in the mac address:
 void MCP7941x::writeMacAddress(byte *mac_address)
 {
-  Wire.beginTransmission(MCP7941x_EEPROM_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_EEPROM_I2C_ADDR);
   WireSend(0xF2);
 
   for( int i=0; i<6; i++ )
@@ -88,7 +88,7 @@ void MCP7941x::writeMacAddress(byte *mac_address)
     WireSend(mac_address[i]);
   }
 
-  Wire.endTransmission();
+  Wire1.endTransmission();
 }
 
 
@@ -103,7 +103,7 @@ void MCP7941x::setDateTime(
   byte month,         // 1-12
   byte year)          // 0-99
 {
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION);
   
   WireSend(decToBcd(second) & 0x7f);              // set seconds and disable clock (01111111)
@@ -114,13 +114,13 @@ void MCP7941x::setDateTime(
   WireSend(decToBcd(month) & 0x1f);               // set the month (00011111)
   WireSend(decToBcd(year));                       // set the year (11111111)
   
-  Wire.endTransmission();
+  Wire1.endTransmission();
 
   // Start Clock:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION);
   WireSend(decToBcd(second) | 0x80);     // set seconds and enable clock (10000000)
-  Wire.endTransmission();
+  Wire1.endTransmission();
 }
 
 
@@ -134,11 +134,11 @@ void MCP7941x::getDateTime(
   byte *month,
   byte *year)
 {
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION);
-  Wire.endTransmission();
+  Wire1.endTransmission();
 
-  Wire.requestFrom(MCP7941x_RTC_I2C_ADDR, 7);
+  Wire1.requestFrom(MCP7941x_RTC_I2C_ADDR, 7);
   
   // A few of these need masks because certain bits are control bits
   *second     = bcdToDec(WireReceive() & 0x7f);  // 01111111
@@ -156,19 +156,19 @@ void MCP7941x::enableClock()
 {
   // Get the current seconds value as the enable/disable bit is in the same
   // byte of memory as the seconds value:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION);
-  Wire.endTransmission();
+  Wire1.endTransmission();
 
-  Wire.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
+  Wire1.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
   
   int second = bcdToDec(WireReceive() & 0x7f);  // 01111111
 
   // Start Clock:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION);
   WireSend(decToBcd(second) | 0x80);     // set seconds and enable clock (10000000)
-  Wire.endTransmission();
+  Wire1.endTransmission();
 }
 
 
@@ -177,19 +177,19 @@ void MCP7941x::disableClock()
 {
   // Get the current seconds value as the enable/disable bit is in the same
   // byte of memory as the seconds value:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION);
-  Wire.endTransmission();
+  Wire1.endTransmission();
 
-  Wire.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
+  Wire1.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
   
   int second = bcdToDec(WireReceive() & 0x7f);  // 01111111
 
   // Start Clock:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION);
   WireSend(decToBcd(second));     // set seconds and disable clock (01111111)
-  Wire.endTransmission();
+  Wire1.endTransmission();
 }
 
 
@@ -199,19 +199,19 @@ void MCP7941x::enableBattery()
 {
   // Get the current seconds value as the enable/disable bit is in the same
   // byte of memory as the seconds value:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION + 0x03);
-  Wire.endTransmission();
+  Wire1.endTransmission();
 
-  Wire.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
+  Wire1.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
   
   int day = bcdToDec(WireReceive() & 0x07);  // 00000111
 
   // Start Clock:
-  Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+  Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
   WireSend(RTC_LOCATION + 0x03);
   WireSend(decToBcd(day) | 0x08);     // set day and enable battery (00001000)
-  Wire.endTransmission();
+  Wire1.endTransmission();
 }
 
 
@@ -220,10 +220,10 @@ void MCP7941x::setSramByte ( byte location, byte data )
 {
   if (location >= 0x20 && location <= 0x5f)
   {
-    Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+    Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
     WireSend(location);
     WireSend(data);
-    Wire.endTransmission();
+    Wire1.endTransmission();
   }
 }
 
@@ -233,11 +233,11 @@ byte MCP7941x::getSramByte ( byte location )
 {
   if (location >= 0x20 && location <= 0x5f)
   {
-    Wire.beginTransmission(MCP7941x_RTC_I2C_ADDR);
+    Wire1.beginTransmission(MCP7941x_RTC_I2C_ADDR);
     WireSend(location);
-    Wire.endTransmission();
+    Wire1.endTransmission();
 
-    Wire.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
+    Wire1.requestFrom(MCP7941x_RTC_I2C_ADDR, 1);
 
     return WireReceive();
   }
